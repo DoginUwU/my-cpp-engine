@@ -3,16 +3,13 @@
 #include <GLFW/glfw3.h>
 #include "window.hpp"
 #include "shader.hpp"
+#include "object.hpp"
 
 using namespace std;
 
 void processInput(GLFWwindow *window);
 
-float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.0f,  0.5f, 0.0f
-};
+bool wireframe = false;
 
 int main() {
     // Initialize a GLFW
@@ -34,29 +31,10 @@ int main() {
         return -1;
     }
 
-    Shader *shader = new Shader("shaders/vertex/simple.vert", "shaders/fragments/simple.frag");
+    Shader *basicShader = new Shader("shaders/vertex/simple.vert", "shaders/fragments/simple.frag");
 
-    // Set viewport
-    glViewport(0, 0, 800, 600);
-
-    // TODO: Remove
-    // 0. bind VBO buffers
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-
-    // 1. bind Vertex Array Object
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    // 2. copy our vertices array in a buffer for OpenGL to use
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // 3. then set the vertex attributes pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-    glEnableVertexAttribArray(0);
-    //
+   Object *triangle = new Object();
+   triangle->setShader(basicShader->program);
 
     while(!window->shouldClose()) {
         processInput(window->instance());
@@ -64,28 +42,35 @@ int main() {
         glClearColor(0.45f, 0.83f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // 4. use our shader program when we want to render an object
-        glUseProgram(shader->program);
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+       triangle->update();
 
         window->update();
         glfwPollEvents(); // Check if any events are triggered (like keyboard input or mouse movement events)
     }
 
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteProgram(shader->program);
+    triangle->destroy();
 
     glfwTerminate();
 
     return 0;
 }
 
+bool temp = false;
 void processInput(GLFWwindow *window) {
     if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose(window, true);
+    }
+
+    if(glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS && !temp) {
+        wireframe = !wireframe;
+        if(wireframe) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        } else {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        temp = true;
+    }
+    if(glfwGetKey(window, GLFW_KEY_P) == GLFW_RELEASE && temp) {
+        temp = false;
     }
 }
